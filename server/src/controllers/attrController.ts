@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { fileRepo,userRepo,toFsPath,has_permissions,parseIno,toEntryJson,isBadName,childPathOf, pathRepo, getDirectorySize} from '../utilities';
+import { fileRepo,userRepo,toFsPath,has_permissions,parseIno,toEntryJson,childPathOf, pathRepo, getDirectorySize} from '../utilities';
 import { File } from '../entities/File';
 import { User } from '../entities/User';
 import * as fs from 'node:fs/promises';
@@ -257,20 +257,18 @@ export class AttributeController{
             const fullFsPath=toFsPath(file.paths[0].path);
             const stats=await fs.lstat(fullFsPath,{bigint:true});
 
-            const lastModifiedSecond = Math.floor(stats.mtime.getTime() / 1000);
+            const lastModifiedMs = stats.ctime.getTime();
             if (isModifiedHeader) {
                 const isModifiedMs = Date.parse(isModifiedHeader);
                 if (!Number.isNaN(isModifiedMs)) {
-                    const isModifiedSeconds = Math.floor(isModifiedMs / 1000);
-                    if (lastModifiedSecond <= isModifiedSeconds) {
+                    if (lastModifiedMs <= isModifiedMs) {
+                        const lastModifiedHttp=(new Date(lastModifiedMs)).toUTCString();
+                        res.setHeader('Last-Modified', lastModifiedHttp);
                         console.log("[getattr] status 304: Not Modified");
                         return res.status(304).end();
                     }
                 }
             }
-
-            const lastModifiedHttp=(new Date(lastModifiedSecond * 1000)).toUTCString();
-            res.setHeader('Last-Modified', lastModifiedHttp);
 
             console.log("[getattr] status 200: returning entry");
             return res.status(200).json(toEntryJson(file, stats, file.paths[0]));

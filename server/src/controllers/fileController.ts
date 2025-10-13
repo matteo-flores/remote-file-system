@@ -5,7 +5,6 @@ import { User } from '../entities/User';
 import { Group } from '../entities/Group';
 import * as fs from 'node:fs/promises';
 import { Path } from '../entities/Path';
-import { permission } from 'node:process';
 
 export class FileController {
     public mkdir = async (req: Request, res: Response) => {
