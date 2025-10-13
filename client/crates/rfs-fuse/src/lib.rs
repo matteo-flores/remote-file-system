@@ -14,7 +14,6 @@ use tokio_stream::StreamExt;
 
 const TTL_FILE: Duration = Duration::from_secs(2);
 const TTL_DIR: Duration = Duration::from_secs(1);
-const FOPEN_NONSEEKABLE: u32 = 1 << 2; //bit per settare nonseekable flag (controllare meglio abi, non viene codificato in fuser)
 const LARGE_FILE_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
 
 fn map_error(error: &BackendError) -> libc::c_int {
@@ -419,7 +418,7 @@ impl<B: RemoteBackend> Filesystem for RemoteFS<B> {
         let mut fuse_flags = consts::FOPEN_DIRECT_IO; // default, non usare cache del kernel
         if (flags & O_ACCMODE) == O_RDONLY || (flags & O_ACCMODE) == O_RDWR {
             let (ff, mode) = if size > LARGE_FILE_SIZE {
-                (consts::FOPEN_DIRECT_IO | FOPEN_NONSEEKABLE, ReadMode::LargeStream(StreamState::new()))
+                (consts::FOPEN_DIRECT_IO, ReadMode::LargeStream(StreamState::new()))
             } else {
                 (consts::FOPEN_KEEP_CACHE, ReadMode::SmallPages)
             };
@@ -465,10 +464,23 @@ impl<B: RemoteBackend> Filesystem for RemoteFS<B> {
         
         match &mut handle {
             ReadMode::LargeStream(state) => {
-                let need= size as usize;
-                if offset as u64 != state.pos { 
-                    reply.error(libc::ESPIPE); 
-                    return; 
+                let need = size as usize;
+                if offset as u64 != state.pos {
+                    // closing current stream if open
+                    state.stream = None;
+                    state.buffer.clear();
+                    state.eof = false;
+                    state.pos = offset as u64;
+                    // open new stream from new offset
+                    match self.backend.read_stream(ino, state.pos) {
+                        Ok(stream) => {
+                            state.stream = Some(stream);
+                        }
+                        Err(e) => {
+                            reply.error(map_error(&e));
+                            return;
+                        }
+                    }
                 }
                 if state.stream.is_none() && !state.eof {
                     match self.backend.read_stream(ino, state.pos) {
