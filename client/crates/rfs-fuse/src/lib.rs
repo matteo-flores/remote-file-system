@@ -12,8 +12,8 @@ use std::time::{Duration, Instant, SystemTime};
 use tokio::runtime::Runtime;
 use tokio_stream::StreamExt;
 
-const TTL_FILE: Duration = Duration::from_secs(7);
-const TTL_DIR: Duration = Duration::from_secs(3);
+const TTL_FILE: Duration = Duration::from_secs(2);
+const TTL_DIR: Duration = Duration::from_secs(1);
 const FOPEN_NONSEEKABLE: u32 = 1 << 2; //bit per settare nonseekable flag (controllare meglio abi, non viene codificato in fuser)
 const LARGE_FILE_SIZE: u64 = 100 * 1024 * 1024; // 100 MB
 

@@ -76,8 +76,8 @@ impl Credentials {
 
         let base_url = Url::from_str(address).map_err(|e| format!("Invalid base URL: {e}"))?;
         let login_url = base_url.join("api/login").expect("Invalid login URL");
-        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build().expect("Unable to build a Runtime object");
-        let client = Client::builder().timeout(Duration::from_secs(15)).build().expect("Failed to create HTTP client");
+        let rt = Runtime::new().expect("Unable to build a Runtime object");
+        let client = Client::builder().timeout(Duration::from_secs(5)).build().expect("Failed to create HTTP client");
 
         let mut username = String::new();
         print!("username: ");
@@ -172,7 +172,7 @@ impl HttpBackend {
         let cookie_jar = Arc::new(Jar::default());
         let cookie_str = format!("connect.sid={}", sid.trim());
         cookie_jar.add_cookie_str(&cookie_str, &base_url);
-        let client = reqwest::Client::builder()
+        let client = Client::builder()
             .cookie_provider(cookie_jar)
             .timeout(Duration::from_secs(300)) // 5 mins
             .build()
