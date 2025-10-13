@@ -1,51 +1,36 @@
-# Express Server Project
+# Remote File System – Server
+This package contains the Express + TypeScript backend that powers the Remote File System project. It authenticates users via Passport, stores metadata with TypeORM/SQLite and keeps file contents under a configurable root directory (`FS_ROOT`).
 
-This is a simple Express server project built with TypeScript. It serves as a starting point for building web applications using the Express framework.
-
-## Project Structure
-
+## Quick start
+```bash
+cd server
+npm install
+npm run dev    # Run with ts-node-dev
 ```
-express-server
-├── src
-│   ├── index.ts          # Entry point of the application
-│   ├── controllers       # Contains controllers for handling requests
-│   │   └── index.ts
-│   ├── routes            # Contains route definitions
-│   │   └── index.ts
-│   └── types             # Contains TypeScript type definitions
-│       └── index.ts
-├── package.json          # NPM package configuration
-├── tsconfig.json         # TypeScript configuration
-└── README.md             # Project documentation
+To produce a compiled build:
+```bash
+npm run build
+npm start
 ```
 
-## Setup Instructions
+## Environment variables
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PORT`   | `3000`  | HTTP port exposed by the Express server. |
+| `FS_ROOT`| `<repo>/server/file-system` | Base directory mirrored by the API. |
 
-1. **Clone the repository:**
-   ```
-   git clone <repository-url>
-   cd express-server
-   ```
+## Project structure
+```
+src/
+├── controllers/          # Request handlers (authentication, attributes, file I/O)
+├── routes/               # Express route registration
+├── entities/             # TypeORM entities (User, Group, File, Path)
+├── utilities.ts          # Helper functions shared across controllers
+├── data-source.ts        # TypeORM data source definition
+└── index.ts              # Application bootstrap
+```
 
-2. **Install dependencies:**
-   ```
-   npm install
-   ```
+Metadata is persisted in `metadata.sqlite`. The `file-system/` directory is created automatically if missing.
 
-3. **Compile TypeScript:**
-   ```
-   npm run build
-   ```
-
-4. **Run the server:**
-   ```
-   npm start
-   ```
-
-## Usage
-
-Once the server is running, you can access it at `http://localhost:3000`. You can define your routes and controllers in the `src/routes` and `src/controllers` directories respectively.
-
-## Contributing
-
-Feel free to submit issues or pull requests for improvements or bug fixes.
+## API documentation
+The full API reference (request bodies, responses and HTTP status codes) lives in the project root `README.md`.
