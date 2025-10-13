@@ -47,7 +47,7 @@ For details on setup and development workflows, see:
 - **Streaming file access.** Read and write endpoints support streaming to avoid buffering large files in memory and include offset-aware semantics for random access.
 - **Provisioning automation.** Special files at the filesystem root (e.g., `/create-user.txt`, `/create-group.txt`) trigger background user/group creation via the HTTP API—useful for bootstrap flows and external integrations.
 - **Cross‑platform mounting.** The Rust workspace includes adapters for Linux/macOS (fuser) and Windows (WinFSP) so the same codebase serves heterogeneous fleets.
-- **SQLite‑backed durability.** Metadata persistence is handled via TypeORM on SQLite. Swapping DB backends later requires minimal changes.
+- **Database flexibility.** Metadata persistence is handled via TypeORM on SQLite. Swapping DB backend service later on requires minimal changes.
 
 ---
 
