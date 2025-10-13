@@ -1,5 +1,5 @@
 use lru::LruCache;
-use rfs_models::{RemoteBackend, FileEntry, BackendError, SetAttrRequest, BLOCK_SIZE};
+use rfs_models::{RemoteBackend, FileEntry, BackendError, SetAttrRequest, BLOCK_SIZE, EntryType};
 use std::num::NonZeroUsize;
 use std::time::SystemTime;
 use rfs_models::ByteStream;
@@ -39,6 +39,16 @@ impl <B:RemoteBackend> Cache<B> {
 
     #[inline]
     fn remember_meta(&mut self, entry: &FileEntry) {
+        if self.meta.contains(&entry.ino) && entry.mtime != self.get_cached_mtime(entry.ino).unwrap_or(SystemTime::UNIX_EPOCH) {
+            if entry.kind == EntryType::File {
+                // println!("remember_meta: invalidating file blocks for ino {}", entry.ino);
+                self.file_blocks.pop(&entry.ino); // il file è cambiato, invalidiamo i blocchi
+            }
+            if entry.kind == EntryType::Directory {
+                // println!("remember_meta: invalidating dir children for ino {}", entry.ino);
+                self.dir_child.pop(&entry.ino); // la directory potrebbe essere cambiata
+            }
+        }
         self.meta.put(entry.ino, Arc::new(entry.clone()));
     }
 
@@ -47,27 +57,26 @@ impl <B:RemoteBackend> Cache<B> {
         self.meta.get(&ino).map(|e| e.mtime)
     }
 
+    #[inline]
+    fn get_cached_ctime(&mut self, ino: u64) -> Option<SystemTime> {
+        self.meta.get(&ino).map(|e| e.ctime)
+    }
+
     fn revalidate_meta(&mut self, ino:u64) -> Result<FileEntry, BackendError> {
-        let since= self.get_cached_mtime(ino).unwrap_or(SystemTime::UNIX_EPOCH);
+        let since= self.get_cached_ctime(ino).unwrap_or(SystemTime::UNIX_EPOCH);
         match self.http_backend.get_attr_if_modified_since(ino, since)? {
-            Some(entry) => {
-                if let Some(prev) = self.get_cached_mtime(ino) {
-                    if entry.mtime > prev {
-                        self.file_blocks.pop(&ino); // il file è cambiato, invalidiamo i blocchi
-                    }
-                }
-                self.remember_meta(&entry);
+            Some(entry) => {                
+                self.remember_meta(&entry); // riscrive automaticamente in cache
                 return Ok(entry);
             },
             None => {
                 if let Some(cached) = self.meta.get(&ino) {
                     return Ok((**cached).clone());
                 }
-                else{
-                    let entry = self.http_backend.get_attr(ino)?;
-                    self.remember_meta(&entry);
-                    return Ok(entry);
-                }
+                let entry = self.http_backend.get_attr(ino)?;
+                self.remember_meta(&entry);
+                return Ok(entry);
+
             }
         }
     }
@@ -166,7 +175,7 @@ impl <B:RemoteBackend> RemoteBackend for Cache<B> {
     }
 
     fn read_chunk(&mut self, ino: u64, offset: u64, size: u64)-> Result<Vec<u8>, BackendError> {
-        let _ = self.revalidate_meta(ino)?; // assicuriamoci che il file sia aggiornato
+        let _ = self.revalidate_meta(ino)?; // assicuriamo che il file sia aggiornato
         let (start_block, end_block) = block_span(offset, size);
         let mut result = Vec::with_capacity(size as usize);
 
@@ -221,11 +230,6 @@ impl <B:RemoteBackend> RemoteBackend for Cache<B> {
 
     fn set_attr(&mut self, ino:u64, attrs: SetAttrRequest) -> Result<FileEntry, BackendError> {
         let res= self.http_backend.set_attr(ino, attrs)?;
-        if let Some(prev) = self.get_cached_mtime(ino) {
-            if res.mtime > prev {
-                self.file_blocks.pop(&ino); // il file è cambiato, invalidiamo i blocchi
-            }
-        }
         self.remember_meta(&res);
         Ok(res)
     }
@@ -258,10 +262,5 @@ impl <B:RemoteBackend> RemoteBackend for Cache<B> {
     fn readlink(&mut self, ino: u64) -> Result<String, BackendError> {
         // DA VEDERE, forse si può fare caching
         self.http_backend.readlink(ino)
-    }
-
-    // used just in windows
-    fn get_size(&mut self) -> Result<(u64, u64), BackendError> {
-        Ok((0, 0))
     }
 }
