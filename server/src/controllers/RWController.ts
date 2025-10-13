@@ -378,9 +378,9 @@ export class ReadWriteController {
     }
 
     public read = async (req: Request, res: Response) => {
-        console.log("[read] called with ino:", req.params.ino, "offset:", req.params.offset, "size:", req.query.size, "user:", (req.user as User)?.uid);
+        console.log("[read] called with ino:", req.params.ino, "offset:", req.query.offset, "size:", req.query.size, "user:", (req.user as User)?.uid);
         const ino = parseIno(req.params.ino);
-        const offset = Number(req.params.offset) || 0;
+        const offset = Number(req.query.offset) || 0;
         const MAX_READ_SIZE = 1024 * 1024; // 1MB
         const size = Math.min(Number(req.query.size) || 4096, MAX_READ_SIZE);
         const user: User = req.user as User;
