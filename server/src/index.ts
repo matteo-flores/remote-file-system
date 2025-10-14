@@ -20,9 +20,10 @@ process.env
 
 app.use(express.json());
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
+server.timeout = 10 * 60 * 1000; // 10 minutes
 
 app.use(passport.initialize());
 
