@@ -473,4 +473,4 @@ Common error shapes across endpoints:
 
 ## Authors
 
-Created by **[Andrea](https://github.com/andrea-germano)** and **[Matteo](https://github.com/matteo027)**.
+Created by **[Andrea](https://github.com/andrea-germano)** and **[Matteo](https://github.com/matteo-flores)**.
